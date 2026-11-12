@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101b32">
+  <title>ОС-УЧЁТ — учёт основных средств</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="setupNotice" class="setup hidden"></div>
+<section id="authView" class="auth-screen">
+  <div class="auth-card">
+    <div class="brand-mark">ОС</div><p class="eyebrow">СИСТЕМА УЧЁТА ИМУЩЕСТВА</p>
+    <h1>ОС-УЧЁТ</h1><p class="muted">Войдите в рабочее пространство организации</p>
+    <form id="loginForm">
+      <label>Логин<input id="email" type="text" placeholder="Otabek" autocomplete="username" required></label>
+      <label>Пароль<input id="password" type="password" placeholder="Ваш пароль" autocomplete="current-password" required></label>
+      <button class="primary full">Войти в систему</button>
+      <p id="authError" class="error"></p>
+    </form>
+    <div class="auth-foot">Защищённый доступ для сотрудников</div>
+  </div>
+</section>
+<div id="appView" class="hidden">
+  <aside class="sidebar">
+    <div class="side-brand"><div class="brand-mark smallmark">ОС</div><div><b>ОС-УЧЁТ</b><small>Управление имуществом</small></div></div>
+    <nav><button class="nav active" data-tab="assets"><span>▦</span> Основные средства</button><button class="nav" data-tab="inventory"><span>◎</span> Инвентаризация</button><button class="nav" data-tab="users" id="usersNav"><span>♙</span> Пользователи</button></nav>
+    <div class="side-bottom"><div class="online-dot"></div><span>Общая база подключена</span><button id="logoutBtn" class="logout">Выйти ↗</button></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</p><h2 id="pageTitle">Основные средства</h2></div><div class="user-chip"><div class="avatar" id="avatar">А</div><div><b id="userEmail">Пользователь</b><small id="userRole">Сотрудник</small></div></div></header>
+    <section id="assetsTab" class="tab-content">
+      <div class="stats"><div class="stat"><span>Всего объектов</span><b id="totalCount">0</b><small>В общей базе</small></div><div class="stat"><span>В наличии</span><b id="availableCount">0</b><small>По текущему списку</small></div><div class="stat"><span>На ремонте</span><b id="repairCount">0</b><small>Требуют внимания</small></div></div>
+      <div class="toolbar"><div class="searchbox">⌕ <input id="searchInput" placeholder="Поиск по названию, инвентарному номеру, кабинету..."></div><button id="exportBtn" class="light-btn">⇩ Excel</button><button id="addBtn" class="primary">＋ Добавить объект</button></div>
+      <div class="panel"><div class="panel-head"><div><h3>Реестр имущества</h3><p>Все основные средства организации</p></div><span class="count-pill" id="shownCount">0 записей</span></div>
+        <div class="table-scroll"><table><thead><tr><th>Наименование</th><th>Инв. номер</th><th>Кабинет</th><th>Ответственное лицо</th><th>Статус</th><th></th></tr></thead><tbody id="assetRows"></tbody></table></div>
+        <div id="emptyState" class="empty hidden"><div class="empty-icon">▤</div><b>Пока нет объектов</b><p>Добавьте первое основное средство в реестр.</p></div>
+      </div>
+    </section>
+    <section id="inventoryTab" class="tab-content hidden">
+      <div class="panel inventory-panel"><div class="panel-head"><div><h3>Режим инвентаризации</h3><p>Проверьте наличие объекта по инвентарному номеру</p></div></div><div class="inventory-search"><input id="inventoryNumber" placeholder="Введите инвентарный номер"><button id="checkInventory" class="primary">Проверить</button></div><div id="inventoryResult" class="inventory-result muted">Введите номер, чтобы проверить объект.</div></div>
+    </section>
+    <section id="usersTab" class="tab-content hidden">
+      <div class="panel"><div class="panel-head"><div><h3>Пользователи</h3><p>Управление доступом сотрудников</p></div></div><div class="notice">Создание пользователей выполняется в панели Supabase: Authentication → Users → Add user. После создания можно назначить роль администратора SQL-командой из инструкции.</div><div id="usersList"></div></div>
+    </section>
+  </main>
+</div>
+<div id="assetModal" class="modal hidden"><div class="modal-card wide-modal"><div class="modal-head"><div><p class="eyebrow">КАРТОЧКА ОСНОВНОГО СРЕДСТВА</p><h3 id="modalTitle">Новый объект</h3></div><button class="icon-btn" id="closeModal">✕</button></div>
+<form id="assetForm"><div class="form-grid">
+<label class="span2">Наименование *<input name="name" required maxlength="200"></label>
+<label>Инвентарный номер *<input name="inventory_number" required maxlength="100"></label>
+<label>Серийный номер<input name="serial_number"></label>
+<label>Кабинет<input name="room"></label><label>Ответственное лицо<input name="responsible"></label>
+<label>Дата принятия<input name="acceptance_date" type="date"></label>
+<label>Статус<select name="status"><option>В наличии</option><option>В эксплуатации</option><option>На ремонте</option><option>Списано</option><option>Отсутствует</option></select></label>
+<label class="span2">Комментарий<textarea name="comments" rows="3"></textarea></label>
+<label class="span2">Фотография<input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp"><small class="hint">JPG, PNG или WEBP, максимум 8 МБ</small></label>
+</div><div id="currentPhotoWrap" class="current-photo hidden"><img id="currentPhoto" alt="Фотография объекта"><span>Текущая фотография</span></div>
+<div class="modal-actions"><button type="button" id="deleteAssetBtn" class="danger hidden">Удалить</button><span class="spacer"></span><button type="button" id="cancelModal" class="light-btn">Отмена</button><button class="primary">Сохранить</button></div><p id="assetError" class="error"></p></form>
+</div></div>
+<div id="detailModal" class="modal hidden"><div class="modal-card detail-card"><div class="modal-head"><div><p class="eyebrow">ПОДРОБНАЯ ИНФОРМАЦИЯ</p><h3 id="detailTitle">Объект</h3></div><button class="icon-btn" id="closeDetail">✕</button></div><div id="detailBody"></div><div class="modal-actions"><button id="detailQr" class="light-btn">QR-код</button><span class="spacer"></span><button id="detailEdit" class="primary">Редактировать</button></div></div></div>
+<div id="qrModal" class="modal hidden"><div class="modal-card qr-card"><button class="icon-btn close-qr" id="closeQr">✕</button><h3>QR-код объекта</h3><div id="qrTarget"></div><p id="qrLabel" class="muted"></p><button id="printQr" class="light-btn">Печать</button></div></div>
+<script src="config.js"></script><script src="app.js"></script>
+</body></html>
